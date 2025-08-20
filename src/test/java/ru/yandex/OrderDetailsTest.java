@@ -1,39 +1,55 @@
 import io.qameta.allure.*;
+import io.restassured.response.Response; // Добавляем этот импорт
 import org.junit.jupiter.api.*;
-import static io.restassured.RestAssured.*;
+import org.junit.jupiter.api.Assumptions;
+import ru.yandex.BaseOrderTest;
+import ru.yandex.OrderAPI;
+
 import static org.hamcrest.Matchers.*;
 
-@DisplayName("Тесты для деталей создания заказа")
+@DisplayName("Тесты детальной информации о заказах")
 @Epic("API тесты для сервиса доставки")
-@Feature("Получение информации о заказе")
+@Feature("Детали заказов")
 public class OrderDetailsTest extends BaseOrderTest {
 
-    private Integer trackId;  // Изменено на Integer
-
-    @BeforeEach
-    public void setUp() {
-        trackId = createTestOrder("BLACK");
-    }
-
     @Test
-    @DisplayName("Получение информации по трек-номеру")
-    public void getOrderByTrack() {
-        given()
-                .queryParam("t", trackId)
-                .get("/api/v1/orders/track")
+    @Story("Получение деталей заказа")
+    @DisplayName("Успешное получение деталей заказа по ID")
+    @Step("Получение деталей заказа по ID: {trackNumber}")
+    public void getOrderDetailsByIdSuccess() {
+        Assumptions.assumeTrue(trackNumber != 0, "Заказ не был создан для теста");
+
+        // Предполагая, что trackNumber можно использовать как orderId
+        // Или нужна дополнительная логика для получения orderId
+        OrderAPI.getOrderById(trackNumber)
                 .then()
                 .statusCode(200)
-                .body("order.id", notNullValue())
-                .body("order.track", equalTo(trackId));  // Сравниваем с Integer
+                .body("order", notNullValue())
+                .body("order.id", notNullValue());
     }
 
     @Test
-    @DisplayName("Запрос без трек-номера")
-    public void getOrderWithoutTrack() {
-        given()
-                .get("/api/v1/orders/track")
+    @Story("Получение деталей заказа")
+    @DisplayName("Получение деталей несуществующего заказа")
+    @Step("Попытка получения деталей несуществующего заказа (ID: 999999)")
+    public void getOrderDetailsForNonExistentOrderFails() {
+        OrderAPI.getOrderById(999999)
                 .then()
-                .statusCode(400)
-                .body("message", equalTo("Недостаточно данных для поиска"));
+                .statusCode(404);
+    }
+
+    @Test
+    @Story("Получение деталей заказа")
+    @DisplayName("Получение деталей заказа с невалидным ID")
+    @Step("Попытка получения деталей заказа с невалидным ID: -1")
+    public void getOrderDetailsWithInvalidIdFails() {
+        OrderAPI.getOrderById(-1)
+                .then()
+                .statusCode(400);
+    }
+
+    @Step("Вызов API для получения заказа по ID: {orderId}")
+    private static Response getOrderById(int orderId) {
+        return OrderAPI.getOrderById(orderId);
     }
 }

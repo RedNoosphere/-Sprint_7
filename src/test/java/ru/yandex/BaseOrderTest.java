@@ -1,26 +1,55 @@
-import io.restassured.RestAssured;
-import org.junit.jupiter.api.BeforeAll;
+package ru.yandex;
 
-import static io.restassured.RestAssured.given;
+import io.qameta.allure.Step;
+import io.restassured.response.Response;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 
 public class BaseOrderTest {
-    @BeforeAll
-    public static void setupAll() {
-        RestAssured.baseURI = "https://qa-scooter.praktikum-services.ru";
+
+    protected OrderAPI.Order order;
+    protected int trackNumber;
+    protected int orderId;
+
+    @BeforeEach
+    @Step("Подготовка тестового заказа перед каждым тестом")
+    public void setUp() {
+        // Создаем тестовый заказ перед каждым тестом
+        order = OrderAPI.createValidOrder(new String[]{"BLACK"});
+        Response response = OrderAPI.createOrder(order);
+
+        if (OrderAPI.isOrderCreatedSuccessfully(response)) {
+            trackNumber = OrderAPI.getTrackNumber(response);
+            // Здесь может быть логика получения orderId по trackNumber
+        }
     }
 
-    protected Integer createTestOrder(String color) {  // Изменено на Integer
-        return given()
-                .contentType("application/json")
-                .body(String.format(
-                        "{ \"firstName\": \"Тест\", \"lastName\": \"Тестов\", " +
-                                "\"address\": \"Москва\", \"metroStation\": 4, " +
-                                "\"phone\": \"+79991234567\", \"rentTime\": 5, " +
-                                "\"deliveryDate\": \"2023-12-31\", \"comment\": \"Коммент\", " +
-                                "\"color\": [\"%s\"] }", color))
-                .post("/api/v1/orders")
-                .then()
-                .extract()
-                .path("track");
+    @AfterEach
+    @Step("Очистка тестовых данных заказа")
+    public void tearDown() {
+        // Очистка тестовых данных
+        if (trackNumber != 0) {
+            OrderAPI.cancelOrder(trackNumber);
+        }
+    }
+
+    @Step("Создание тестового заказа с цветами: {colors}")
+    protected OrderAPI.Order createOrderWithColor(String[] colors) {
+        return OrderAPI.createValidOrder(colors);
+    }
+
+    @Step("Получение track number из ответа")
+    protected int getTrackNumber(Response response) {
+        return OrderAPI.getTrackNumber(response);
+    }
+
+    @Step("Проверка успешного создания заказа")
+    protected boolean isOrderCreatedSuccessfully(Response response) {
+        return OrderAPI.isOrderCreatedSuccessfully(response);
+    }
+
+    @Step("Отмена заказа с track number: {track}")
+    protected Response cancelOrder(int track) {
+        return OrderAPI.cancelOrder(track);
     }
 }

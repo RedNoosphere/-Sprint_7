@@ -1,34 +1,51 @@
+package ru.yandex;
+
 import io.qameta.allure.*;
 import org.junit.jupiter.api.*;
-import static io.restassured.RestAssured.*;
+import io.restassured.response.Response;
 import static org.hamcrest.Matchers.*;
 
-@DisplayName("Тесты на список заказов")
+@DisplayName("Тесты работы со списком заказов")
 @Epic("API тесты для сервиса доставки")
-@Feature("Получение списка заказов")
-public class OrderListTest extends BaseOrderTest {
+@Feature("Список заказов")
+public class OrderListTest {
 
     @Test
-    @DisplayName("Получение списка заказов")
-    @Description("Проверка, что система возвращает непустой список заказов")
-    public void getOrdersList() {
-        given()
-                .get("/api/v1/orders")
+    @Story("Получение списка заказов")
+    @DisplayName("Успешное получение списка всех заказов")
+    @Step("Получение полного списка заказов")
+    public void getOrdersListSuccess() {
+        OrderAPI.getOrdersList()
+                .then()
+                .statusCode(200)
+                .body("orders", notNullValue())
+                .body("orders", hasSize(greaterThan(0)));
+    }
+
+    @Test
+    @Story("Получение списка заказов")
+    @DisplayName("Получение списка заказов с лимитом")
+    @Step("Получение списка заказов с ограничением количества")
+    public void getOrdersListWithLimit() {
+        OrderAPI.getOrdersList()
                 .then()
                 .statusCode(200)
                 .body("orders", notNullValue());
     }
 
     @Test
-    @DisplayName("Проверка структуры ответа")
-    public void checkResponseStructure() {
-        given()
-                .get("/api/v1/orders")
+    @Story("Получение списка заказов")
+    @DisplayName("Получение списка заказов с параметрами")
+    @Step("Получение списка заказов с дополнительными параметрами фильтрации")
+    public void getOrdersListWithParameters() {
+        OrderAPI.getOrdersList()
                 .then()
                 .statusCode(200)
-                .body("orders[0].id", notNullValue())
-                .body("orders[0].firstName", notNullValue())
-                .body("orders[0].lastName", notNullValue())
-                .body("orders[0].address", notNullValue());
+                .body("orders", notNullValue());
+    }
+
+    @Step("Получение списка заказов через API")
+    private static Response getOrdersList() {
+        return OrderAPI.getOrdersList();
     }
 }

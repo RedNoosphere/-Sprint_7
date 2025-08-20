@@ -1,5 +1,6 @@
 import io.qameta.allure.*;
 import org.junit.jupiter.api.*;
+import io.restassured.response.Response;
 
 import static io.restassured.RestAssured.*;
 import static org.hamcrest.Matchers.*;
@@ -10,6 +11,7 @@ import static org.hamcrest.Matchers.*;
 public class CourierLoginTest extends BaseCourierTest {
 
     @BeforeEach
+    @Step("Подготовка тестового курьера для авторизации")
     public void setUp() {
         login = "testCourier_" + System.currentTimeMillis();
         // Создаем курьера для тестов авторизации
@@ -22,6 +24,7 @@ public class CourierLoginTest extends BaseCourierTest {
     }
 
     @AfterEach
+    @Step("Очистка тестовых данных курьера: {login}")
     public void tearDown() {
         deleteCourier(login, password);
     }
@@ -29,6 +32,7 @@ public class CourierLoginTest extends BaseCourierTest {
     @Test
     @Story("Позитивные сценарии")
     @DisplayName("Успешная авторизация")
+    @Step("Успешная авторизация курьера: логин {login}")
     public void loginCourierSuccess() {
         given()
                 .contentType("application/json")
@@ -43,6 +47,7 @@ public class CourierLoginTest extends BaseCourierTest {
     @Story("Негативные сценарии")
     @DisplayName("Авторизация с неверным паролем")
     @Severity(SeverityLevel.CRITICAL)
+    @Step("Попытка авторизации с неверным паролем: логин {login}")
     public void loginWithInvalidCredentialsFails() {
         given()
                 .contentType("application/json")
@@ -51,5 +56,23 @@ public class CourierLoginTest extends BaseCourierTest {
                 .then()
                 .statusCode(404)
                 .body("message", equalTo("Учетная запись не найдена"));
+    }
+
+    @Step("Создание тестового курьера: логин {login}, имя {firstName}")
+    private void createTestCourier(String login, String password, String firstName) {
+        given()
+                .contentType("application/json")
+                .body(String.format(
+                        "{\"login\":\"%s\",\"password\":\"%s\",\"firstName\":\"%s\"}",
+                        login, password, firstName))
+                .post("/api/v1/courier");
+    }
+
+    @Step("Авторизация курьера: логин {login}")
+    private Response loginCourier(String login, String password) {
+        return given()
+                .contentType("application/json")
+                .body(String.format("{\"login\":\"%s\",\"password\":\"%s\"}", login, password))
+                .post("/api/v1/courier/login");
     }
 }

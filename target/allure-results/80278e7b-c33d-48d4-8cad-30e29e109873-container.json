@@ -1,1 +1,0 @@
-{"uuid":"80278e7b-c33d-48d4-8cad-30e29e109873","name":"Тесты на список заказов","children":["1f7f3127-925a-4978-94d6-39f8ca1bd11e","6515ac4d-fe85-45f5-896b-c616d59dfce3"],"befores":[{"name":"setupAll","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1755354605237,"stop":1755354605237}],"afters":[],"start":1755354605237,"stop":1755354614359}

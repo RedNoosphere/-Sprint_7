@@ -1,1 +1,0 @@
-{"uuid":"c5c270a1-fb19-4e7d-8fb2-d0db986544c7","name":"CourierLoginTest","children":["8012353f-24d0-4fef-b230-b959e5edbc2f","61d8e04b-f617-41b6-9beb-31cbe5293ed6"],"befores":[{"name":"setupAll","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1755354081943,"stop":1755354081943}],"afters":[],"start":1755354081942,"stop":1755354082839}
