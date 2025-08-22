@@ -5,12 +5,6 @@ import io.restassured.response.Response;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.Assumptions;
 import static org.hamcrest.Matchers.*;
-import static io.restassured.RestAssured.given;
-
-// Добавленные импорты
-import org.junit.jupiter.api.Assertions;
-import java.util.Map;
-import java.util.HashMap;
 
 @DisplayName("Тесты операций с заказами")
 @Epic("API тесты для сервиса доставки")
@@ -66,23 +60,15 @@ public class OrderTests extends BaseOrderTest {
             this.orderId = 0;
         }
 
-        // Логинимся и получаем courierId (ИСПРАВЛЕННАЯ ЧАСТЬ)
+        // Логинимся и получаем courierId через API класс (ИСПРАВЛЕННАЯ ЧАСТЬ)
         try {
-            Map<String, String> credentials = new HashMap<>();
-            credentials.put("login", testCourierLogin);
-            credentials.put("password", testCourierPassword);
+            Integer courierIdResult = CourierAPI.getCourierId(testCourierLogin, testCourierPassword);
 
-            Response loginResponse = given()
-                    .contentType("application/json")
-                    .body(credentials)
-                    .post("/api/v1/courier/login");
-
-            if (loginResponse.statusCode() == 200) {
-                this.courierId = loginResponse.path("id");
+            if (courierIdResult != null) {
+                this.courierId = courierIdResult;
                 System.out.println("Successfully logged in courier. CourierId: " + this.courierId);
             } else {
-                System.out.println("Failed to login courier. Status: " + loginResponse.statusCode());
-                System.out.println("Login response: " + loginResponse.asString());
+                System.out.println("Failed to login courier - returned null");
                 this.courierId = 0;
             }
         } catch (Exception e) {
@@ -98,10 +84,6 @@ public class OrderTests extends BaseOrderTest {
         if (testCourierLogin != null) {
             CourierAPI.deleteCourierIfExists(testCourierLogin, testCourierPassword);
         }
-    }
-
-    private int getExistingCourierId() {
-        return courierId; // Возвращаем реальный ID созданного курьера
     }
 
     @Test

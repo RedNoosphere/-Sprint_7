@@ -1,3 +1,5 @@
+package ru.yandex;
+
 import io.qameta.allure.*;
 import io.restassured.response.Response; // Добавляем этот импорт
 import org.junit.jupiter.api.*;

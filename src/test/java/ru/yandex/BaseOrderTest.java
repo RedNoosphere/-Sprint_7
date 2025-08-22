@@ -20,7 +20,7 @@ public class BaseOrderTest {
 
         if (OrderAPI.isOrderCreatedSuccessfully(response)) {
             trackNumber = OrderAPI.getTrackNumber(response);
-            // Здесь может быть логика получения orderId по trackNumber
+
         }
     }
 

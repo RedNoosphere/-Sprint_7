@@ -1,7 +1,8 @@
+package ru.yandex;
+
 import io.qameta.allure.*;
 import org.junit.jupiter.api.*;
 import io.restassured.response.Response;
-
 import static io.restassured.RestAssured.*;
 import static org.hamcrest.Matchers.*;
 
@@ -14,13 +15,8 @@ public class CourierLoginTest extends BaseCourierTest {
     @Step("Подготовка тестового курьера для авторизации")
     public void setUp() {
         login = "testCourier_" + System.currentTimeMillis();
-        // Создаем курьера для тестов авторизации
-        given()
-                .contentType("application/json")
-                .body(String.format(
-                        "{\"login\":\"%s\",\"password\":\"%s\",\"firstName\":\"%s\"}",
-                        login, password, firstName))
-                .post("/api/v1/courier");
+        // ✅ Использование API класса вместо прямого REST вызова
+        CourierAPI.createCourier(login, password, firstName);
     }
 
     @AfterEach
@@ -34,10 +30,7 @@ public class CourierLoginTest extends BaseCourierTest {
     @DisplayName("Успешная авторизация")
     @Step("Успешная авторизация курьера: логин {login}")
     public void loginCourierSuccess() {
-        given()
-                .contentType("application/json")
-                .body(String.format("{\"login\":\"%s\",\"password\":\"%s\"}", login, password))
-                .post("/api/v1/courier/login")
+        CourierAPI.loginCourier(login, password)
                 .then()
                 .statusCode(200)
                 .body("id", notNullValue());
@@ -49,30 +42,9 @@ public class CourierLoginTest extends BaseCourierTest {
     @Severity(SeverityLevel.CRITICAL)
     @Step("Попытка авторизации с неверным паролем: логин {login}")
     public void loginWithInvalidCredentialsFails() {
-        given()
-                .contentType("application/json")
-                .body(String.format("{\"login\":\"%s\",\"password\":\"wrong_pass\"}", login))
-                .post("/api/v1/courier/login")
+        CourierAPI.loginCourier(login, "wrong_pass")
                 .then()
                 .statusCode(404)
                 .body("message", equalTo("Учетная запись не найдена"));
-    }
-
-    @Step("Создание тестового курьера: логин {login}, имя {firstName}")
-    private void createTestCourier(String login, String password, String firstName) {
-        given()
-                .contentType("application/json")
-                .body(String.format(
-                        "{\"login\":\"%s\",\"password\":\"%s\",\"firstName\":\"%s\"}",
-                        login, password, firstName))
-                .post("/api/v1/courier");
-    }
-
-    @Step("Авторизация курьера: логин {login}")
-    private Response loginCourier(String login, String password) {
-        return given()
-                .contentType("application/json")
-                .body(String.format("{\"login\":\"%s\",\"password\":\"%s\"}", login, password))
-                .post("/api/v1/courier/login");
     }
 }
