@@ -1,8 +1,11 @@
 package ru.yandex;
 
+import API.CourierAPI;
+import data.Courier;  // Правильный импорт!
 import io.qameta.allure.*;
-import org.junit.jupiter.api.*;
 import io.restassured.response.Response;
+import org.junit.jupiter.api.*;
+
 import static org.hamcrest.Matchers.*;
 
 @DisplayName("Тесты создания курьера")
@@ -10,7 +13,7 @@ import static org.hamcrest.Matchers.*;
 @Feature("Создание курьера")
 public class CourierCreationTest {
 
-    private CourierAPI.Courier courier;
+    private Courier courier;  // Правильный тип!
     private String login;
 
     @BeforeEach
@@ -61,7 +64,7 @@ public class CourierCreationTest {
     @Step("Попытка создания курьера без пароля: логин {login}")
     public void createCourierWithoutRequiredFieldFails() {
         // Создаем невалидного курьера без пароля
-        CourierAPI.Courier invalidCourier = new CourierAPI.Courier(login, null, "Sasha");
+        Courier invalidCourier = new Courier(login, null, "Sasha");  // Правильный конструктор!
 
         CourierAPI.createCourier(invalidCourier)
                 .then()
@@ -75,7 +78,7 @@ public class CourierCreationTest {
     @Step("Попытка создания курьера без логина")
     public void createCourierWithoutLoginFails() {
         // Создаем невалидного курьера без логина, но с паролем
-        CourierAPI.Courier invalidCourier = new CourierAPI.Courier(null, "validPassword123", "Sasha");
+        Courier invalidCourier = new Courier(null, "validPassword123", "Sasha");  // Правильный конструктор!
 
         CourierAPI.createCourier(invalidCourier)
                 .then()
@@ -88,7 +91,7 @@ public class CourierCreationTest {
     @DisplayName("Создание курьера с пустым логином")
     @Step("Попытка создания курьера с пустым логином")
     public void createCourierWithEmptyLoginFails() {
-        CourierAPI.Courier invalidCourier = new CourierAPI.Courier("", "emptyPass", "Sasha");
+        Courier invalidCourier = new Courier("", "emptyPass", "Sasha");  // Правильный конструктор!
 
         CourierAPI.createCourier(invalidCourier)
                 .then()
@@ -100,15 +103,12 @@ public class CourierCreationTest {
     @DisplayName("Создание курьера с пустым паролем")
     @Step("Попытка создания курьера с пустым паролем: логин {login}")
     public void createCourierWithEmptyPasswordFails() {
-        CourierAPI.Courier invalidCourier = new CourierAPI.Courier("validLogin", "", "Sasha");
+        Courier invalidCourier = new Courier("validLogin", "", "Sasha");  // Правильный конструктор!
 
         CourierAPI.createCourier(invalidCourier)
                 .then()
                 .statusCode(400);
     }
 
-    @Step("Создание курьера через API: логин {courier.login}")
-    private static Response createCourier(CourierAPI.Courier courier) {
-        return CourierAPI.createCourier(courier);
-    }
+
 }

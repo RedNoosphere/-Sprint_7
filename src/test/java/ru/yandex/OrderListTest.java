@@ -1,8 +1,9 @@
 package ru.yandex;
 
+import API.OrderAPI;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.*;
-import io.restassured.response.Response;
+
 import static org.hamcrest.Matchers.*;
 
 @DisplayName("Тесты работы со списком заказов")
@@ -27,6 +28,7 @@ public class OrderListTest {
     @DisplayName("Получение списка заказов с лимитом")
     @Step("Получение списка заказов с ограничением количества")
     public void getOrdersListWithLimit() {
+        // Если API поддерживает параметр лимита, нужно добавить его в OrderAPI
         OrderAPI.getOrdersList()
                 .then()
                 .statusCode(200)
@@ -38,14 +40,10 @@ public class OrderListTest {
     @DisplayName("Получение списка заказов с параметрами")
     @Step("Получение списка заказов с дополнительными параметрами фильтрации")
     public void getOrdersListWithParameters() {
+        // Если API поддерживает параметры фильтрации, нужно добавить их в OrderAPI
         OrderAPI.getOrdersList()
                 .then()
                 .statusCode(200)
                 .body("orders", notNullValue());
-    }
-
-    @Step("Получение списка заказов через API")
-    private static Response getOrdersList() {
-        return OrderAPI.getOrdersList();
     }
 }

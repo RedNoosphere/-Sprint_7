@@ -1,5 +1,7 @@
 package ru.yandex;
 
+import API.OrderAPI;
+import data.Order;  // Правильный импорт!
 import io.qameta.allure.*;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -24,7 +26,7 @@ public class OrderCreationTest extends BaseOrderTest {
     @DisplayName("Успешное создание заказа с разными цветами")
     @Step("Создание заказа с цветами: {arguments}")
     public void createOrderWithDifferentColorsSuccess(String testName, String[] colors) {
-        OrderAPI.Order order = createOrderWithColor(colors);
+        Order order = createOrderWithColor(colors);  // Предполагается, что метод есть в BaseOrderTest
 
         OrderAPI.createOrder(order)
                 .then()
@@ -48,7 +50,7 @@ public class OrderCreationTest extends BaseOrderTest {
     @Story("Негативные сценарии создания")
     @DisplayName("Создание заказа без обязательных полей")
     @Step("Попытка создания заказа без {0}")
-    public void createOrderWithoutRequiredFieldFails(String fieldName, OrderAPI.Order invalidOrder) {
+    public void createOrderWithoutRequiredFieldFails(String fieldName, Order invalidOrder) {
         OrderAPI.createOrder(invalidOrder)
                 .then()
                 .statusCode(400);
@@ -66,6 +68,16 @@ public class OrderCreationTest extends BaseOrderTest {
                         "Иван", null, "ул. Ленина, д. 123", "4",
                         "+79991234567", 3, "2024-08-25",
                         "Тестовый заказ", new String[]{"BLACK"}
+                )),
+                Arguments.of("address", OrderAPI.createCustomOrder(
+                        "Иван", "Петров", null, "4",
+                        "+79991234567", 3, "2024-08-25",
+                        "Тестовый заказ", new String[]{"BLACK"}
+                )),
+                Arguments.of("phone", OrderAPI.createCustomOrder(
+                        "Иван", "Петров", "ул. Ленина, д. 123", "4",
+                        null, 3, "2024-08-25",
+                        "Тестовый заказ", new String[]{"BLACK"}
                 ))
         );
     }
@@ -75,12 +87,28 @@ public class OrderCreationTest extends BaseOrderTest {
     @NullAndEmptySource
     @ValueSource(strings = {" ", "  "})
     @Story("Валидация данных")
-    @DisplayName("Создание заказа с пустыми логинами")
-    @Step("Попытка создания заказа с пустым логином: '{login}'")
-    public void createOrderWithEmptyLoginFails(String login) {
-        OrderAPI.Order invalidOrder = OrderAPI.createCustomOrder(
-                login, "Петров", "ул. Ленина, д. 123", "4",
+    @DisplayName("Создание заказа с пустыми именами")
+    @Step("Попытка создания заказа с пустым именем: '{firstName}'")
+    public void createOrderWithEmptyFirstNameFails(String firstName) {
+        Order invalidOrder = OrderAPI.createCustomOrder(
+                firstName, "Петров", "ул. Ленина, д. 123", "4",
                 "+79991234567", 3, "2024-08-25",
+                "Тестовый заказ", new String[]{"BLACK"}
+        );
+
+        OrderAPI.createOrder(invalidOrder)
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    @Story("Валидация данных")
+    @DisplayName("Создание заказа с отрицательным временем аренды")
+    @Step("Попытка создания заказа с отрицательным временем аренды")
+    public void createOrderWithNegativeRentTimeFails() {
+        Order invalidOrder = OrderAPI.createCustomOrder(
+                "Иван", "Петров", "ул. Ленина, д. 123", "4",
+                "+79991234567", -1, "2024-08-25",
                 "Тестовый заказ", new String[]{"BLACK"}
         );
 

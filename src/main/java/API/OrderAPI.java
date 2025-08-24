@@ -1,82 +1,21 @@
-package ru.yandex;
+package API;
 
 import io.qameta.allure.Step;
+import io.restassured.RestAssured;
 import io.restassured.response.Response;
-import static io.restassured.RestAssured.*;
+import data.Order;
+import data.CancelOrderRequest;
+import data.AcceptOrderRequest;
+
+import static io.restassured.RestAssured.given;
 
 public class OrderAPI {
 
     private static final String BASE_URI = "https://qa-scooter.praktikum-services.ru";
     private static final String ORDER_PATH = "/api/v1/orders";
 
-    // --- ВЛОЖЕННЫЕ DTO-КЛАССЫ ---
-
-    public static class Order {
-        private String firstName;
-        private String lastName;
-        private String address;
-        private String metroStation;
-        private String phone;
-        private int rentTime;
-        private String deliveryDate;
-        private String comment;
-        private String[] color;
-
-        public Order() {
-        }
-
-        public Order(String firstName, String lastName, String address, String metroStation,
-                     String phone, int rentTime, String deliveryDate, String comment, String[] color) {
-            this.firstName = firstName;
-            this.lastName = lastName;
-            this.address = address;
-            this.metroStation = metroStation;
-            this.phone = phone;
-            this.rentTime = rentTime;
-            this.deliveryDate = deliveryDate;
-            this.comment = comment;
-            this.color = color;
-        }
-
-        public String getFirstName() { return firstName; }
-        public String getLastName() { return lastName; }
-        public String getAddress() { return address; }
-        public String getMetroStation() { return metroStation; }
-        public String getPhone() { return phone; }
-        public int getRentTime() { return rentTime; }
-        public String getDeliveryDate() { return deliveryDate; }
-        public String getComment() { return comment; }
-        public String[] getColor() { return color; }
-
-        public void setFirstName(String firstName) { this.firstName = firstName; }
-        public void setLastName(String lastName) { this.lastName = lastName; }
-        public void setAddress(String address) { this.address = address; }
-        public void setMetroStation(String metroStation) { this.metroStation = metroStation; }
-        public void setPhone(String phone) { this.phone = phone; }
-        public void setRentTime(int rentTime) { this.rentTime = rentTime; }
-        public void setDeliveryDate(String deliveryDate) { this.deliveryDate = deliveryDate; }
-        public void setComment(String comment) { this.comment = comment; }
-        public void setColor(String[] color) { this.color = color; }
-    }
-
-    public static class CancelOrderRequest {
-        private int track;
-
-        public CancelOrderRequest(int track) {
-            this.track = track;
-        }
-
-        public int getTrack() { return track; }
-    }
-
-    public static class AcceptOrderRequest {
-        private int courierId;
-
-        public AcceptOrderRequest(int courierId) {
-            this.courierId = courierId;
-        }
-
-        public int getCourierId() { return courierId; }
+    static {
+        RestAssured.baseURI = BASE_URI;
     }
 
     // --- МЕТОДЫ API ---
@@ -87,54 +26,56 @@ public class OrderAPI {
                 .contentType("application/json")
                 .body(order)
                 .when()
-                .post(BASE_URI + ORDER_PATH);
+                .post(ORDER_PATH);
     }
 
     @Step("Получение списка заказов")
     public static Response getOrdersList() {
         return given()
                 .when()
-                .get(BASE_URI + ORDER_PATH);
+                .get(ORDER_PATH);
     }
 
     @Step("Получение заказа по ID: {orderId}")
     public static Response getOrderById(int orderId) {
         return given()
                 .when()
-                .get(BASE_URI + ORDER_PATH + "/" + orderId);
+                .get(ORDER_PATH + "/" + orderId);
     }
 
     @Step("Получение заказа по track номеру: {trackNumber}")
     public static Response getOrderByTrack(int trackNumber) {
         return given()
-                .queryParam("t", trackNumber)
+                .queryParam("t", trackNumber)  // ✅ ПРАВИЛЬНО: параметр "t" согласно документации
                 .when()
-                .get(BASE_URI + ORDER_PATH + "/track");
+                .get(ORDER_PATH + "/track");
     }
 
     @Step("Отмена заказа с track номером: {trackNumber}")
     public static Response cancelOrder(int trackNumber) {
+        CancelOrderRequest request = new CancelOrderRequest(trackNumber);
         return given()
                 .contentType("application/json")
-                .body(new CancelOrderRequest(trackNumber))
+                .body(request)
                 .when()
-                .put(BASE_URI + ORDER_PATH + "/cancel");
+                .put(ORDER_PATH + "/cancel");
     }
 
     @Step("Принятие заказа {orderId} курьером {courierId}")
     public static Response acceptOrder(int orderId, int courierId) {
+        AcceptOrderRequest request = new AcceptOrderRequest(courierId);
         return given()
                 .contentType("application/json")
-                .body(new AcceptOrderRequest(courierId))
+                .body(request)
                 .when()
-                .put(BASE_URI + ORDER_PATH + "/accept/" + orderId);
+                .put(ORDER_PATH + "/accept/" + orderId);
     }
 
     @Step("Завершение заказа: {orderId}")
     public static Response finishOrder(int orderId) {
         return given()
                 .when()
-                .put(BASE_URI + ORDER_PATH + "/finish/" + orderId);
+                .put(ORDER_PATH + "/finish/" + orderId);
     }
 
     // --- ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ---
@@ -188,4 +129,5 @@ public class OrderAPI {
     public static boolean isOrderCancelledSuccessfully(Response response) {
         return response.statusCode() == 200 && response.path("ok") != null && response.path("ok").equals(true);
     }
+
 }

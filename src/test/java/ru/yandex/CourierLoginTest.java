@@ -1,9 +1,12 @@
 package ru.yandex;
 
+import API.CourierAPI;
+import data.Courier;  // Добавлен импорт!
+import data.CourierCredentials;  // Добавлен импорт!
 import io.qameta.allure.*;
-import org.junit.jupiter.api.*;
 import io.restassured.response.Response;
-import static io.restassured.RestAssured.*;
+import org.junit.jupiter.api.*;
+
 import static org.hamcrest.Matchers.*;
 
 @DisplayName("Тесты для авторизации курьера")
@@ -11,18 +14,24 @@ import static org.hamcrest.Matchers.*;
 @Feature("Авторизация курьера")
 public class CourierLoginTest extends BaseCourierTest {
 
+    private String login;
+    private String password = "1234";  // Добавлено поле password
+    private String firstName = "Sasha";  // Добавлено поле firstName
+
     @BeforeEach
     @Step("Подготовка тестового курьера для авторизации")
     public void setUp() {
         login = "testCourier_" + System.currentTimeMillis();
-        // ✅ Использование API класса вместо прямого REST вызова
-        CourierAPI.createCourier(login, password, firstName);
+        // использование API класса через объект Courier
+        Courier courier = new Courier(login, password, firstName);
+        CourierAPI.createCourier(courier);
     }
 
     @AfterEach
     @Step("Очистка тестовых данных курьера: {login}")
     public void tearDown() {
-        deleteCourier(login, password);
+        // Предполагается, что метод deleteCourierIfExists есть в BaseCourierTest или CourierAPI
+        CourierAPI.deleteCourierIfExists(login, password);
     }
 
     @Test
@@ -30,7 +39,9 @@ public class CourierLoginTest extends BaseCourierTest {
     @DisplayName("Успешная авторизация")
     @Step("Успешная авторизация курьера: логин {login}")
     public void loginCourierSuccess() {
-        CourierAPI.loginCourier(login, password)
+        // использование API класса через объект CourierCredentials
+        CourierCredentials credentials = new CourierCredentials(login, password);
+        CourierAPI.loginCourier(credentials)
                 .then()
                 .statusCode(200)
                 .body("id", notNullValue());
@@ -42,7 +53,21 @@ public class CourierLoginTest extends BaseCourierTest {
     @Severity(SeverityLevel.CRITICAL)
     @Step("Попытка авторизации с неверным паролем: логин {login}")
     public void loginWithInvalidCredentialsFails() {
-        CourierAPI.loginCourier(login, "wrong_pass")
+        // использование API класса через объект CourierCredentials
+        CourierCredentials credentials = new CourierCredentials(login, "wrong_pass");
+        CourierAPI.loginCourier(credentials)
+                .then()
+                .statusCode(404)
+                .body("message", equalTo("Учетная запись не найдена"));
+    }
+
+    @Test
+    @Story("Негативные сценарии")
+    @DisplayName("Авторизация несуществующего курьера")
+    @Step("Попытка авторизации несуществующего курьера")
+    public void loginNonExistentCourierFails() {
+        CourierCredentials credentials = new CourierCredentials("nonexistent", "password");
+        CourierAPI.loginCourier(credentials)
                 .then()
                 .statusCode(404)
                 .body("message", equalTo("Учетная запись не найдена"));

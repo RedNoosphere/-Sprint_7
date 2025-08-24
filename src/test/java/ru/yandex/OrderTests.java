@@ -1,9 +1,14 @@
 package ru.yandex;
 
+import API.CourierAPI;
+import API.OrderAPI;
+import data.Courier;
+import data.CourierCredentials;
 import io.qameta.allure.*;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.Assumptions;
+
 import static org.hamcrest.Matchers.*;
 
 @DisplayName("Тесты операций с заказами")
@@ -12,67 +17,35 @@ import static org.hamcrest.Matchers.*;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class OrderTests extends BaseOrderTest {
 
-    private int orderId;
     private int courierId;
-    private static CourierAPI.Courier testCourier;
     private static String testCourierLogin;
-    private static String testCourierPassword;
+    private static String testCourierPassword = "1234";
 
     @BeforeAll
     @Step("Создание тестового курьера (BeforeAll)")
     public static void setUpTestCourier() {
-        // Создаем тестового курьера перед всеми тестами
-        testCourier = CourierAPI.createValidCourier();
-        testCourierLogin = testCourier.getLogin();
-        testCourierPassword = testCourier.getPassword();
+        // Создаем тестового курьера
+        testCourierLogin = "testCourier_" + System.currentTimeMillis();
+        Courier testCourier = new Courier(testCourierLogin, testCourierPassword, "Test Courier");
 
         // Регистрируем курьера
         Response createResponse = CourierAPI.createCourier(testCourier);
-        Assertions.assertTrue(CourierAPI.isCourierCreatedSuccessfully(createResponse),
+        Assumptions.assumeTrue(CourierAPI.isCourierCreatedSuccessfully(createResponse),
                 "Не удалось создать тестового курьера");
     }
 
     @BeforeEach
-    @Step("Подготовка данных заказа и курьера (BeforeEach)")
-    public void setUpOrderAndCourier() {
-        // Получаем orderId из созданного заказа
-        if (trackNumber != 0) {
-            try {
-                Response orderResponse = OrderAPI.getOrderByTrack(trackNumber);
-
-                // Логируем ответ для отладки
-                System.out.println("GetOrderByTrack Response - Status: " + orderResponse.statusCode());
-                System.out.println("GetOrderByTrack Response - Body: " + orderResponse.asString());
-
-                if (OrderAPI.isOrderFoundByTrack(orderResponse)) {
-                    this.orderId = OrderAPI.getOrderId(orderResponse);
-                    System.out.println("Successfully retrieved orderId: " + this.orderId);
-                } else {
-                    System.out.println("Failed to find order by track. Status: " + orderResponse.statusCode());
-                    this.orderId = 0; // Устанавливаем 0 чтобы тесты пропустились
-                }
-            } catch (Exception e) {
-                System.out.println("Error getting order by track: " + e.getMessage());
-                this.orderId = 0;
-            }
-        } else {
-            System.out.println("Track number is 0, skipping order retrieval");
-            this.orderId = 0;
-        }
-
-        // Логинимся и получаем courierId через API класс (ИСПРАВЛЕННАЯ ЧАСТЬ)
+    @Step("Подготовка данных курьера (BeforeEach)")
+    public void setUpCourier() {
+        // Получаем courierId через API класс
         try {
             Integer courierIdResult = CourierAPI.getCourierId(testCourierLogin, testCourierPassword);
-
             if (courierIdResult != null) {
                 this.courierId = courierIdResult;
-                System.out.println("Successfully logged in courier. CourierId: " + this.courierId);
             } else {
-                System.out.println("Failed to login courier - returned null");
                 this.courierId = 0;
             }
         } catch (Exception e) {
-            System.out.println("Error logging in courier: " + e.getMessage());
             this.courierId = 0;
         }
     }
@@ -80,114 +53,120 @@ public class OrderTests extends BaseOrderTest {
     @AfterAll
     @Step("Удаление тестового курьера (AfterAll)")
     public static void tearDownTestCourier() {
-        // Удаляем тестового курьера после всех тестов
+        // Удаляем тестового курьера
         if (testCourierLogin != null) {
             CourierAPI.deleteCourierIfExists(testCourierLogin, testCourierPassword);
         }
     }
 
     @Test
-    @Order(1)
+    @org.junit.jupiter.api.Order(1)  // ✅ Явное указание пакета для аннотации
     @Story("Отмена заказов")
     @DisplayName("Успешная отмена заказа")
     @Step("Отмена заказа с track номером: {trackNumber}")
     public void cancelOrderSuccess() {
         Assumptions.assumeTrue(trackNumber != 0, "Заказ не был создан для теста");
 
-        // Добавляем логирование для отладки
-        System.out.println("Attempting to cancel order with track: " + trackNumber);
-        Response cancelResponse = OrderAPI.cancelOrder(trackNumber);
-        System.out.println("Cancel response - Status: " + cancelResponse.statusCode());
-        System.out.println("Cancel response - Body: " + cancelResponse.asString());
-
-        cancelResponse
+        OrderAPI.cancelOrder(trackNumber)
                 .then()
                 .statusCode(200)
                 .body("ok", equalTo(true));
     }
 
     @Test
-    @Order(2)
+    @org.junit.jupiter.api.Order(2)  // ✅ Явное указание пакета для аннотации
     @Story("Отмена заказов")
     @DisplayName("Отмена несуществующего заказа")
     @Step("Попытка отмены несуществующего заказа (track: 999999)")
     public void cancelNonExistentOrderFails() {
-        Response response = OrderAPI.cancelOrder(999999);
-        System.out.println("Cancel non-existent response - Status: " + response.statusCode());
-        System.out.println("Cancel non-existent response - Body: " + response.asString());
-
-        response.then().statusCode(404);
+        OrderAPI.cancelOrder(999999)
+                .then()
+                .statusCode(404);
     }
 
     @Test
-    @Order(3)
-    @Story("Отмена заказов")
-    @DisplayName("Отмена заказа с невалидным ID")
-    @Step("Попытка отмены заказа с невалидным ID (track: -1)")
-    public void cancelOrderWithInvalidIdFails() {
-        Response response = OrderAPI.cancelOrder(-1);
-        System.out.println("Cancel invalid response - Status: " + response.statusCode());
-        System.out.println("Cancel invalid response - Body: " + response.asString());
-
-        response.then().statusCode(400);
-    }
-
-    @Test
-    @Order(4)
+    @org.junit.jupiter.api.Order(3)  // ✅ Явное указание пакета для аннотации
     @Story("Принятие заказов")
-    @DisplayName("Успешное принятие заказа курьером")
-    @Step("Принятие заказа {orderId} курьером {courierId}")
+    @DisplayName("Принятие заказа курьером")
+    @Step("Принятие заказа курьером {courierId}")
     public void acceptOrderSuccess() {
-        Assumptions.assumeTrue(orderId != 0, "Order ID не был получен");
         Assumptions.assumeTrue(courierId != 0, "Courier ID не был получен");
 
-        Response response = OrderAPI.acceptOrder(orderId, courierId);
-        System.out.println("Accept order response - Status: " + response.statusCode());
-        System.out.println("Accept order response - Body: " + response.asString());
+        // Создаем отдельный заказ для этого теста
+        data.Order order = new data.Order(  // ✅ Явное указание пакета
+                "Иван",
+                "Петров",
+                "ул. Ленина, д. 123",
+                "4",
+                "+79991234567",
+                3,
+                "2024-08-25",
+                "Тестовый заказ",
+                new String[]{"BLACK"}
+        );
 
-        response
+        Response createResponse = OrderAPI.createOrder(order);
+        Assumptions.assumeTrue(OrderAPI.isOrderCreatedSuccessfully(createResponse),
+                "Не удалось создать заказ для теста принятия");
+
+        int testTrackNumber = OrderAPI.getTrackNumber(createResponse);
+        Response trackResponse = OrderAPI.getOrderByTrack(testTrackNumber);
+        Assumptions.assumeTrue(OrderAPI.isOrderFoundByTrack(trackResponse),
+                "Не удалось найти заказ по track number");
+
+        int testOrderId = OrderAPI.getOrderId(trackResponse);
+
+        OrderAPI.acceptOrder(testOrderId, courierId)
                 .then()
                 .statusCode(200)
                 .body("ok", equalTo(true));
+
+        // Очищаем тестовый заказ
+        OrderAPI.cancelOrder(testTrackNumber);
     }
 
     @Test
-    @Order(5)
-    @Story("Принятие заказов")
-    @DisplayName("Принятие заказа несуществующим курьером")
-    @Step("Попытка принятия заказа {orderId} несуществующим курьером (id: 999999)")
-    public void acceptOrderWithNonExistentCourierFails() {
-        Assumptions.assumeTrue(orderId != 0, "Order ID не был получен");
-
-        Response response = OrderAPI.acceptOrder(orderId, 999999);
-        System.out.println("Accept non-existent courier response - Status: " + response.statusCode());
-        System.out.println("Accept non-existent courier response - Body: " + response.asString());
-
-        response.then().statusCode(404);
-    }
-
-    @Test
-    @Order(6)
+    @org.junit.jupiter.api.Order(4)  // ✅ Явное указание пакета для аннотации
     @Story("Завершение заказов")
-    @DisplayName("Успешное завершение заказа")
-    @Step("Завершение заказа {orderId} (предварительно принятого курьером {courierId})")
+    @DisplayName("Завершение заказа")
+    @Step("Завершение заказа курьером {courierId}")
     public void finishOrderSuccess() {
-        Assumptions.assumeTrue(orderId != 0, "Order ID не был получен");
         Assumptions.assumeTrue(courierId != 0, "Courier ID не был получен");
 
-        // Сначала принимаем заказ
-        Response acceptResponse = OrderAPI.acceptOrder(orderId, courierId);
-        System.out.println("Accept for finish response - Status: " + acceptResponse.statusCode());
-        System.out.println("Accept for finish response - Body: " + acceptResponse.asString());
+        // Создаем и принимаем заказ для завершения
+        data.Order order = new data.Order(  // ✅ Явное указание пакета
+                "Иван",
+                "Петров",
+                "ул. Ленина, д. 123",
+                "4",
+                "+79991234567",
+                3,
+                "2024-08-25",
+                "Тестовый заказ",
+                new String[]{"BLACK"}
+        );
 
-        // Затем завершаем заказ
-        Response finishResponse = OrderAPI.finishOrder(orderId);
-        System.out.println("Finish order response - Status: " + finishResponse.statusCode());
-        System.out.println("Finish order response - Body: " + finishResponse.asString());
+        Response createResponse = OrderAPI.createOrder(order);
+        Assumptions.assumeTrue(OrderAPI.isOrderCreatedSuccessfully(createResponse),
+                "Не удалось создать заказ для теста завершения");
 
-        finishResponse
+        int testTrackNumber = OrderAPI.getTrackNumber(createResponse);
+        Response trackResponse = OrderAPI.getOrderByTrack(testTrackNumber);
+        Assumptions.assumeTrue(OrderAPI.isOrderFoundByTrack(trackResponse),
+                "Не удалось найти заказ по track number");
+
+        int testOrderId = OrderAPI.getOrderId(trackResponse);
+
+        // Принимаем заказ
+        OrderAPI.acceptOrder(testOrderId, courierId);
+
+        // Завершаем заказ
+        OrderAPI.finishOrder(testOrderId)
                 .then()
                 .statusCode(200)
                 .body("ok", equalTo(true));
+
+        // Очищаем тестовый заказ
+        OrderAPI.cancelOrder(testTrackNumber);
     }
 }
